@@ -2,7 +2,7 @@
 import time
 from socket import AF_INET, SOL_SOCKET, SO_REUSEADDR, SOCK_DGRAM, socket
 
-from gi.repository import Notify
+from gi.repository import Notify, GdkPixbuf
 
 import click
 
@@ -45,6 +45,12 @@ def alert_message(message, logfile=None):
     if logfile is not None:
         logfile.write(msg)
         logfile.flush()
+    icon = GdkPixbuf.Pixbuf.new_from_file("icons/alert.png")
+    notification = Notify.Notification.new(message.from_ip, message.message)
+    notification.set_icon_from_pixbuf(icon)
+    notification.set_image_from_pixbuf(icon)
+    notification.set_urgency(2)
+    notification.show()
 
 
 MSG_TYPE_HANDLERS = {
