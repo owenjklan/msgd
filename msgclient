@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+import os
+
+from socket import socket, AF_INET, SOCK_DGRAM
+
+import click
+
+
+@click.command()
+@click.argument("message")
+@click.option("--address", "-a", "address", type=str, default=None)
+@click.option("--type", "-t", "msgtype", type=str, default=None)
+@click.option("--port", "-p", "port", type=int, default=55555)
+def main(message, address, port, msgtype):
+    client_sock = socket(AF_INET, SOCK_DGRAM)
+
+    if address is None:
+        try:
+            address = os.environ['MSGTARGET']
+        except KeyError:
+            address = "127.0.0.1"
+
+    if msgtype:
+        message = "[{}]".format(msgtype) + message
+
+    print("Message: {}".format(message))
+    print("Target:  {}:{}".format(address, port))
+    client_sock.sendto(bytes(message.encode()), (address, int(port)))
+    print("Message sent")
+
+
+if __name__ == '__main__':
+    main()

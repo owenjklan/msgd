@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+import time
+from socket import AF_INET, SOL_SOCKET, SO_REUSEADDR, SOCK_DGRAM, socket
+
+from gi.repository import Notify
+
+import click
+
+
+class Message():
+    def __init__(self, message, from_addr):
+        self.message = message.decode('utf-8')
+        self.received = time.time()
+        self.from_ip = from_addr[0]
+        self.from_port = from_addr[1]
+        self.msgtype = None
+        self.get_msg_type()
+
+    def __repr__(self):
+        return "{} {:>16} | {}".format(
+            self.received, self.from_ip, self.message)
+
+    def get_msg_type(self):
+        if self.message.startswith('['):
+            try:
+                close_index = self.message.index(']', 1)
+            except ValueError:
+                self.msgtype = None
+                return
+
+            sub_msg = self.message[1:close_index]
+            self.msgtype = sub_msg
+            self.message = self.message[close_index + 1:]
+        else:
+            self.msgtype = None
+
+
+def show_message(message):
+    Notify.Notification.new(message.from_ip, message.message).show()
+
+
+def alert_message(message, logfile=None):
+    msg = "\033[31;1m !! ALERT !!  " + message.message + "\033[0m"
+    print(msg)
+    if logfile is not None:
+        logfile.write(msg)
+        logfile.flush()
+
+
+MSG_TYPE_HANDLERS = {
+    "alert": alert_message,
+}
+
+DEFAULT_BIND_ADDR = "0.0.0.0"
+DEFAULT_BIND_PORT = 55555
+
+
+@click.command()
+@click.option("--bindaddr", "-b", "address", type=str,
+              default=DEFAULT_BIND_ADDR,
+              help=("IPv4 Address to listen on. Default: {}".format(
+                    DEFAULT_BIND_ADDR)))
+@click.option("--port", "-p", "port", type=int,
+              default=DEFAULT_BIND_PORT,
+              help=("UDP port number to listen on. Default: {}".format(
+                    DEFAULT_BIND_PORT)))
+@click.option("--logfile", "-l", "logfile", type=click.File(mode="w+"),
+              default=None,
+              help=("File to save log messages to. Not used by default."))
+def main(address, port, logfile):
+    """
+    Message Daemon
+    ---
+    A simple program to receive textual messages via UDP and use the desktop
+    environment's notification system to display the message.
+
+    Allows optional logging of messages to a file.
+
+    Also allows the idea of "message types". For example, a message of type,
+    'alert' could take additional measures to notify somebody. A message
+    type of 'status' could be used for telemetry recording purposes.
+
+    The message's subtype, if present, is pre-pended to the message. For
+    example, for an 'alert' subtype, the following text should be pre-pended
+    to the supplied message:
+
+            [alert]message text here
+
+    If the text within the brackets matches a registered handler function,
+    then that function will be executed.
+    """
+    bind_address = (address, port)
+    Notify.init("Message-D")
+    server_sock = socket(AF_INET, SOCK_DGRAM)
+    server_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    server_sock.bind(bind_address)
+
+    if logfile:
+        print("Logging messages to: {}".format(logfile.name))
+
+    while True:
+        data, address = server_sock.recvfrom(4096)
+        print("Received {} bytes from {}:{}".format(
+            len(data), address[0], address[1]))
+        msg = Message(data, address)
+        if logfile:
+            if msg.msgtype in MSG_TYPE_HANDLERS:
+                MSG_TYPE_HANDLERS[msg.msgtype](msg, logfile=logfile)
+            else:
+                logfile.write(msg.message)
+            logfile.flush()
+        else:
+            # print("Checking for message handler for type: '{}'...".format(
+            #     msg.msgtype))
+            if msg.msgtype in MSG_TYPE_HANDLERS:
+                MSG_TYPE_HANDLERS[msg.msgtype](msg)
+            else:
+                show_message(msg)
+
+
+if __name__ == '__main__':
+    main()
