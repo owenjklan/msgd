@@ -81,7 +81,8 @@ DEFAULT_BIND_PORT = 55555
                     "this file."))
 @click.option("--msglog", "-l", "msglog", type=click.File(mode="w+"),
               default=None,
-              help=("File to save log messages to. Not used by default."))
+              help=("File to save received messages to. Not used by default."
+                    " Default is to log messages to standard output."))
 @click.option("--no-types", "-T", "notypes", is_flag=True,
               default=False,
               help=("Do not handle message types at all. Default: False"))
@@ -120,9 +121,11 @@ def main(address, port, msglog, logfile, notypes):
 
     while True:
         data, address = server_sock.recvfrom(4096)
-        logging.info("Received {} bytes from {}:{}".format(
-            len(data), address[0], address[1]))
         msg = Message(data, address)
+
+        logging.info("Received {} bytes from {}:{}{}".format(
+            len(data), address[0], address[1],
+            " " + msg.msgtype + " message type" if msg.msgtype else ""))
         if msglog:
             if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
                 MSG_TYPE_HANDLERS[msg.msgtype](msg, msglog=msglog)
