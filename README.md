@@ -28,7 +28,7 @@ Options:
   -p, --port INTEGER      UDP port number to listen on. Default: 55555
   -l, --logfile FILENAME  File to save log messages to. Not used by default.
   --help                  Show this message and exit.
-<pre>
+</pre>
 
 There is a Python client implementation provided as well.
 <pre>
@@ -60,4 +60,4 @@ Options:
                       False
   -F, --fullmsg
   --help              Show this message and exit.
-<pre>
+</pre>
