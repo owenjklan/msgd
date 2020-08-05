@@ -5,8 +5,18 @@ from socket import socket, AF_INET, SOCK_DGRAM
 
 import click
 
+MSG_TRUNCATE = 70
 DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 55555
+DEFAULT_QUIET = False
+
+LABEL = "\033[33;1m"
+GREEN = "\033[32;1m"
+NORMAL = "\033[0m"
+
+
+def label(label_text):
+    return LABEL + label_text + NORMAL
 
 
 @click.command()
@@ -24,7 +34,11 @@ DEFAULT_PORT = 55555
 @click.option("--port", "-p", "port", type=int, default=DEFAULT_PORT,
               help=("Destination port to send message to. Default: {}".format(
                     DEFAULT_PORT)))
-def main(message, address, port, msgtype):
+@click.option("--quiet", "-q", "quiet", is_flag=True, default=DEFAULT_QUIET,
+              help=("Quiet operation. Useful for shell scripting. "
+                    "Default: {}".format(DEFAULT_QUIET)))
+@click.option("--fullmsg", "-F", "fullmsg", is_flag=True, default=False)
+def main(message, address, port, msgtype, quiet, fullmsg):
     """
     Python 3  implementation of a simple UDP-based message protocol, designed
     to be  sent to a  listening server  on a user's  graphical  desktop.  The
@@ -50,10 +64,27 @@ def main(message, address, port, msgtype):
     if msgtype:
         message = "[{}]".format(msgtype) + message
 
-    print("Message: {}".format(message))
-    print("Target:  {}:{}".format(address, port))
+    if not quiet:
+        truncated = False
+        if not fullmsg and len(message) > MSG_TRUNCATE:
+            message = message[:MSG_TRUNCATE - 3] + "..."
+            truncated = True
+            message = message.split('\n')[0]
+        message = "\033[33m" + message + "\033[0m"
+
+        print("{}:  {}:{}".format(label("Target"), address, port))
+        if msgtype:
+            print("{}: {}".format(label("Type"), msgtype))
+        print("{}: {} bytes".format(label("Size"), len(message)))
+        print("{}{}: \n{}".format(
+            label("Message"),
+            " (trunc.)" if truncated else "", message))
+        print(label("--- End of Message ---"))
+
     client_sock.sendto(bytes(message.encode()), (address, int(port)))
-    print("Message sent")
+
+    if not quiet:
+        print(GREEN + "Message sent" + NORMAL)
 
 
 if __name__ == '__main__':
