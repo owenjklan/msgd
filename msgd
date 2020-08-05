@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+import os
+import sys
 import logging
 import time
+import importlib
 from socket import AF_INET, SOL_SOCKET, SO_REUSEADDR, SOCK_DGRAM, socket
 
 import gi
@@ -42,27 +45,27 @@ def show_message(message):
     Notify.Notification.new(message.from_ip, message.message).show()
 
 
-def alert_message(message, msglog=None):
-    msg = "\033[31;1m !! ALERT !!  " + message.message + "\033[0m"
-    logging.info(msg)
-    if msglog is not None:
-        msglog.write(msg)
-        msglog.flush()
-    icon = GdkPixbuf.Pixbuf.new_from_file("icons/alert.png")
-    notification = Notify.Notification.new(message.from_ip, message.message)
-    notification.set_icon_from_pixbuf(icon)
-    notification.set_image_from_pixbuf(icon)
-    notification.set_urgency(2)
-    notification.show()
-
-
 def setup_logging(logfile=None, level=logging.INFO):
     logging.basicConfig(filename=logfile, level=level)
 
 
-MSG_TYPE_HANDLERS = {
-    "alert": alert_message,
-}
+def import_handlers(handler_dir):
+    sys.path.append(handler_dir)
+
+    handler_files = [f for f in os.listdir(handler_dir) if f.endswith('.py')]
+    for handler_file in handler_files:
+        handler_type = handler_file.split('.py')[0]
+        logging.info("Importing '{}'...".format(handler_type))
+        handler_module = importlib.import_module(handler_file.split('.py')[0])
+        MSG_TYPE_HANDLERS[handler_type] = handler_module.handle_message
+
+        if hasattr(handler_module, 'motd'):
+            motd_text = handler_module.motd()
+            print("\033[1;34m{} MOTD:\033[0m {}".format(
+                handler_type, motd_text))
+
+
+MSG_TYPE_HANDLERS = {}
 
 DEFAULT_BIND_ADDR = "0.0.0.0"
 DEFAULT_BIND_PORT = 55555
@@ -120,6 +123,7 @@ def main(address, port, msglog, logfile, notypes, always_notify):
     then that function will be executed.
     """
     setup_logging(logfile=logfile, level=logging.INFO)
+    import_handlers("/usr/share/msgd/handlers")
 
     bind_address = (address, port)
     Notify.init("Message-D")
