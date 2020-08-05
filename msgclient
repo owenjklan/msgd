@@ -5,13 +5,40 @@ from socket import socket, AF_INET, SOCK_DGRAM
 
 import click
 
+DEFAULT_ADDRESS = "127.0.0.1"
+DEFAULT_PORT = 55555
+
 
 @click.command()
 @click.argument("message")
-@click.option("--address", "-a", "address", type=str, default=None)
-@click.option("--type", "-t", "msgtype", type=str, default=None)
-@click.option("--port", "-p", "port", type=int, default=55555)
+@click.option("--address", "-a", "address", type=str, default=DEFAULT_ADDRESS,
+              help=("IPv4 address to send message to. "
+                    "Attempts to use the MSGTARGET environment variable and "
+                    "if MSGTARGET is set, will override any other address-"
+                    "setting options. Default: {}".format(DEFAULT_ADDRESS)))
+@click.option("--type", "-t", "msgtype", type=str, default=None,
+              help=("Specify a type for the given message. "
+                    "The type will be prepended, enclosed in square "
+                    "brackets, to the supplied message. Not used by default."
+                    ))
+@click.option("--port", "-p", "port", type=int, default=DEFAULT_PORT,
+              help=("Destination port to send message to. Default: {}".format(
+                    DEFAULT_PORT)))
 def main(message, address, port, msgtype):
+    """
+    Python 3  implementation of a simple UDP-based message protocol, designed
+    to be  sent to a  listening server  on a user's  graphical  desktop.  The
+    message is then displayed using the server system's Desktop environment's
+    notification  mechanism.  This  usually  manifests  as a "pop-up balloon"
+    notification on the user's desktop.
+
+    Optional  message types can be  specified for  additional handling on the
+    server side.
+
+    For convenience,  the  MSGTARGET  environment  variable can  be  used  to
+    specify the IPv4 address that all  target messages will be sent to.  This
+    means that MSGTARGET will override any other address specified.
+    """
     client_sock = socket(AF_INET, SOCK_DGRAM)
 
     if address is None:
