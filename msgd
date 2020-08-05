@@ -73,7 +73,10 @@ DEFAULT_BIND_PORT = 55555
 @click.option("--logfile", "-l", "logfile", type=click.File(mode="w+"),
               default=None,
               help=("File to save log messages to. Not used by default."))
-def main(address, port, logfile):
+@click.option("--no-types", "-T", "notypes", is_flag=True,
+              default=False,
+              help=("Do not handle message types at all. Default: False"))
+def main(address, port, logfile, notypes):
     """
     Message Daemon
     ---
@@ -110,15 +113,13 @@ def main(address, port, logfile):
             len(data), address[0], address[1]))
         msg = Message(data, address)
         if logfile:
-            if msg.msgtype in MSG_TYPE_HANDLERS:
+            if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
                 MSG_TYPE_HANDLERS[msg.msgtype](msg, logfile=logfile)
             else:
                 logfile.write(msg.message)
             logfile.flush()
         else:
-            # print("Checking for message handler for type: '{}'...".format(
-            #     msg.msgtype))
-            if msg.msgtype in MSG_TYPE_HANDLERS:
+            if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
                 MSG_TYPE_HANDLERS[msg.msgtype](msg)
             else:
                 show_message(msg)
