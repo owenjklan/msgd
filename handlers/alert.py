@@ -1,5 +1,15 @@
+import logging
+
+import gi
+gi.require_version('Notify', '0.7')
+from gi.repository import Notify, GdkPixbuf
+
+
 def motd():
-    return "Alert handling plugin. Special bomb icon and red console text. w00t!"
+    return ("Alert handling plugin. "
+            "Special bomb icon and red console text. "
+            "w00t!")
+
 
 def handle_message(message, msglog=None):
     msg = "\033[31;1m !! ALERT !!  " + message.message + "\033[0m"
