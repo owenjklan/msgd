@@ -142,6 +142,19 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
     setup_logging(logfile=logfile, level=log_level)
     import_handlers("/usr/share/msgd/handlers")
 
+    # Try looking for user-specific handlers. If these conflict
+    # with global handlers from /usr/share/msgd/handlers, then
+    # the user-specified handler will be the winner.
+    user_msgd_dir = os.path.join(os.environ['HOME'], ".msgd/handlers")
+    if not os.path.exists(user_msgd_dir):
+        logging.debug(
+            "User-specified handlers not found. {} doesn't exist.".format(
+                user_msgd_dir))
+    else:
+        # We have handlers!
+        logging.debug("User-specified handlers found!")
+        import_handlers(user_msgd_dir)
+
     bind_address = (address, port)
     Notify.init("Message-D")
     server_sock = socket(AF_INET, SOCK_DGRAM)
