@@ -3,6 +3,8 @@ import logging
 import time
 from socket import AF_INET, SOL_SOCKET, SO_REUSEADDR, SOCK_DGRAM, socket
 
+import gi
+gi.require_version('Notify', '0.7')
 from gi.repository import Notify, GdkPixbuf
 
 import click
@@ -109,6 +111,7 @@ def main(address, port, msglog, logfile, notypes):
     then that function will be executed.
     """
     setup_logging(logfile=logfile, level=logging.INFO)
+
 
     bind_address = (address, port)
     Notify.init("Message-D")
