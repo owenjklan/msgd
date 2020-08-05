@@ -155,6 +155,9 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
         data, address = server_sock.recvfrom(4096)
         msg = Message(data, address)
 
+        # Type handlers might show the notification themselves
+        notice_shown = False
+
         logging.info("Received {} bytes from {}:{}{}".format(
             len(data), address[0], address[1],
             " " + msg.msgtype + " message type" if msg.msgtype else ""))
@@ -169,17 +172,19 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
 
         if msglog:
             if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
-                MSG_TYPE_HANDLERS[msg.msgtype](msg, msglog=msglog)
+                notice_shown = MSG_TYPE_HANDLERS[msg.msgtype](
+                    msg, msglog=msglog, hostname=hostname)
             else:
                 msglog.write(msg.message)
             msglog.flush()
-            if always_notify:
+            if always_notify and not notice_shown:
                 show_message(msg, hostname=hostname)
         else:
             if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
-                MSG_TYPE_HANDLERS[msg.msgtype](
+                notice_shown = MSG_TYPE_HANDLERS[msg.msgtype](
                     msg, msglog=msglog, hostname=hostname)
-            show_message(msg, hostname=hostname)
+            if not notice_shown:
+                show_message(msg, hostname=hostname)
 
 
 if __name__ == '__main__':

@@ -25,3 +25,5 @@ def handle_message(message, msglog=None, hostname=None):
     notification.set_image_from_pixbuf(icon)
     notification.set_urgency(2)
     notification.show()
+
+    return True  # Handling should cease
