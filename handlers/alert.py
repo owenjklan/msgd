@@ -1,4 +1,4 @@
-import logging
+import os
 
 import gi
 gi.require_version('Notify', '0.7')
