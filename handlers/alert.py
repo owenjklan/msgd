@@ -10,14 +10,16 @@ def motd():
             "Special bomb icon and red console text. "
             "w00t!")
 
+MSGD_RESOURCE_DIR = "/home/owen/python/msgd"
+
 
 def handle_message(message, msglog=None, hostname=None):
     msg = "\033[31;1m !! ALERT !!  " + message.message + "\033[0m"
-    logging.info(msg)
     if msglog is not None:
         msglog.write(msg)
         msglog.flush()
-    icon = GdkPixbuf.Pixbuf.new_from_file("icons/alert.png")
+    icon = GdkPixbuf.Pixbuf.new_from_file(os.path.join(
+        MSGD_RESOURCE_DIR, "icons/alert.png"))
     notification = Notify.Notification.new(
         hostname if hostname is not None else message.from_ip,
         message.message)
