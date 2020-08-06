@@ -139,8 +139,8 @@ DEFAULT_BIND_PORT = 55555
               is_flag=True, default=False,
               help=("Disable reverse-DNS lookups for IP addresses of "
                     "senders. Default: False"))
-@click.option("--no-types", "-T", "notypes",
-              is_flag=True, default=False,
+@click.option("--types/--no-types", "handle_types",
+              is_flag=True, default=True,
               help=("Do not handle message types at all. Default: False"))
 @click.option("--always-notify", "-a", "always_notify",
               is_flag=True, default=False,
@@ -149,7 +149,7 @@ DEFAULT_BIND_PORT = 55555
                     "not displayed on the Desktop. This setting means "
                     "that the messages will be displayed as Desktop "
                     "notifications, regardless of other settings"))
-def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
+def main(address, port, msglog, logfile, handle_types, always_notify, debug, nodns):
     """
     Message Daemon
     ---
@@ -178,10 +178,7 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
 
     setup_logging(logfile=logfile, level=log_level)
 
-    # Ugh. Should refactor the parameter name so the following double-
-    # negative can be avoided. If notypes is False, the we DO try to
-    # resolve types. As such, we may not need to import handlers?
-    if not notypes:
+    if handle_types:
         import_handlers()
     else:
         logging.debug("Explicitly NOT loading type handlers")
@@ -215,7 +212,7 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
                 hostname = None
 
         if msglog:
-            if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
+            if handle_types and msg.msgtype in MSG_TYPE_HANDLERS:
                 notice_shown = MSG_TYPE_HANDLERS[msg.msgtype](
                     msg, msglog=msglog, hostname=hostname)
             else:
@@ -224,7 +221,7 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
             if always_notify and not notice_shown:
                 show_message(msg, hostname=hostname)
         else:
-            if notypes is False and msg.msgtype in MSG_TYPE_HANDLERS:
+            if handle_types and msg.msgtype in MSG_TYPE_HANDLERS:
                 notice_shown = MSG_TYPE_HANDLERS[msg.msgtype](
                     msg, msglog=msglog, hostname=hostname)
             if not notice_shown:
