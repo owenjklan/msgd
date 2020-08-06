@@ -21,6 +21,7 @@ class Message():
         self.received = time.time()
         self.from_ip = from_addr[0]
         self.from_port = from_addr[1]
+        self.from_addr = from_addr
         self.msgtype = None
         self.get_msg_type()
 
@@ -58,8 +59,10 @@ def import_handlers(handler_dir):
     handler_files = [f for f in os.listdir(handler_dir) if f.endswith('.py')]
     for handler_file in handler_files:
         handler_type = handler_file.split('.py')[0]
+
         logging.info("Importing '{}'...".format(handler_type))
-        handler_module = importlib.import_module(handler_file.split('.py')[0])
+        handler_module = importlib.import_module(
+            handler_file.split('.py')[0])
         MSG_TYPE_HANDLERS[handler_type] = handler_module.handle_message
 
         if hasattr(handler_module, 'motd'):
@@ -70,7 +73,21 @@ def import_handlers(handler_dir):
             handler_type, os.path.join(handler_dir, handler_file)))
 
 
-MSG_TYPE_HANDLERS = {}
+def supported_handler(message, msglog=None, hostname=None):
+    return_message = "\n".join(MSG_TYPE_HANDLERS.keys())
+    logging.info("Supported types request received from {}:{}".format(
+        message.from_ip, message.from_port))
+
+    # Return message to client
+    return_socket = socket(AF_INET, SOCK_DGRAM)
+    return_socket.sendto(bytes(return_message.encode()), message.from_addr)
+
+    return False  # Don't display notification
+
+
+MSG_TYPE_HANDLERS = {
+    "supported": supported_handler,
+}
 
 DEFAULT_BIND_ADDR = "0.0.0.0"
 DEFAULT_BIND_PORT = 55555
