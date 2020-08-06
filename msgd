@@ -53,7 +53,7 @@ def setup_logging(logfile=None, level=logging.INFO):
     logging.basicConfig(filename=logfile, level=level)
 
 
-def import_handlers(handler_dir):
+def import_handlers_from_dir(handler_dir):
     sys.path.append(handler_dir)
 
     handler_files = [f for f in os.listdir(handler_dir) if f.endswith('.py')]
@@ -71,6 +71,26 @@ def import_handlers(handler_dir):
                 handler_type, motd_text))
         logging.debug("Imported handler for '{}' from '{}'".format(
             handler_type, os.path.join(handler_dir, handler_file)))
+
+
+def import_handlers():
+    import_handlers_from_dir("/usr/share/msgd/handlers")
+
+    # Try looking for user-specific handlers. If these conflict
+    # with global handlers from /usr/share/msgd/handlers, then
+    # the user-specified handler will be the winner.
+    user_msgd_dir = os.path.join(os.environ['HOME'], ".msgd/handlers")
+    if not os.path.exists(user_msgd_dir):
+        logging.debug(
+            "User-specified handlers not found. {} doesn't exist.".format(
+                user_msgd_dir))
+    else:
+        # We have handlers!
+        logging.debug("User-specified handlers found!")
+        import_handlers_from_dir(user_msgd_dir)
+    logging.debug("{} type handlers loaded.".format(len(MSG_TYPE_HANDLERS)))
+    logging.debug("Loaded handlers:  {}".format(
+        ", ".join(sorted(MSG_TYPE_HANDLERS.keys()))))
 
 
 def supported_handler(message, msglog=None, hostname=None):
@@ -162,19 +182,7 @@ def main(address, port, msglog, logfile, notypes, always_notify, debug, nodns):
     # negative can be avoided. If notypes is False, the we DO try to
     # resolve types. As such, we may not need to import handlers?
     if not notypes:
-        import_handlers("/usr/share/msgd/handlers")
-        # Try looking for user-specific handlers. If these conflict
-        # with global handlers from /usr/share/msgd/handlers, then
-        # the user-specified handler will be the winner.
-        user_msgd_dir = os.path.join(os.environ['HOME'], ".msgd/handlers")
-        if not os.path.exists(user_msgd_dir):
-            logging.debug(
-                "User-specified handlers not found. {} doesn't exist.".format(
-                    user_msgd_dir))
-        else:
-            # We have handlers!
-            logging.debug("User-specified handlers found!")
-            import_handlers(user_msgd_dir)
+        import_handlers()
     else:
         logging.debug("Explicitly NOT loading type handlers")
 
