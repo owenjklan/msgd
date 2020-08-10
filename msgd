@@ -98,6 +98,37 @@ def import_handlers():
         ", ".join(sorted(MSG_TYPE_HANDLERS.keys()))))
 
 
+def substitute_datestamp(message):
+    return "[DATESTAMP]"
+
+
+def substitute_timestamp(message):
+    return "[TIMESTAMP]"
+
+
+def format_message(message, format_str):
+    """
+    Available substitution tokens:
+      %D  - Datestamp, in YYYY-MM-DD format
+      %T  - Timestamp, in HH:MM:SS format, 24-hour time
+      %B  - Message text, as base64 encoded string
+      %s  - Source IP address
+      %S  - Source UDP port
+      %t  - Message type, if present, "-" otherwise
+      %l  - Message length, in bytes
+    """
+    out_str = str(format_str)
+
+    out_str = out_str.replace("%D", substitute_datestamp(message))
+    out_str = out_str.replace("%T", substitute_timestamp(message))
+    out_str = out_str.replace("%s", message.from_ip)
+    out_str = out_str.replace("%S", str(message.from_port))
+    out_str = out_str.replace("%l", str(len(message.message)))
+    out_str = out_str.replace("%t", message.msgtype if message.msgtype else "-")
+    out_str = out_str.replace("%m", message.message)
+    return out_str
+
+
 def supported_handler(message, msglog=None, hostname=None):
     return_message = "\n".join(MSG_TYPE_HANDLERS.keys())
     logging.info("Supported types request received from {}:{}".format(
@@ -176,6 +207,17 @@ def main(address, port, msglog, logfile, handle_types, always_notify, debug, nod
     If the text within the brackets matches a registered handler function,
     then that function will be executed.
     """
+    launch_abort = False
+    if "DISPLAY" not in os.environ:
+        logging.error("DISPLAY variable isn't set in the environment!")
+        launch_abort = True
+    if "HOME" not in os.environ:
+        logging.error("HOME variable isn't set in the environment")
+        # Don't abort launch for this one
+
+    if launch_abort:
+        sys.exit(1)
+
     if debug:
         log_level = logging.DEBUG
     else:
@@ -207,6 +249,10 @@ def main(address, port, msglog, logfile, handle_types, always_notify, debug, nod
         logging.info("Received {} bytes from {}:{}{}".format(
             len(data), address[0], address[1],
             " " + msg.msgtype + " message type" if msg.msgtype else ""))
+
+        logging.info(
+            format_message(
+                msg, "FMT: Received %l byte message from %s:%S:  %t"))
 
         hostname = None
         # Attempt Reverse DNS lookup.
